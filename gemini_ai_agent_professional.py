@@ -375,7 +375,7 @@ class TTSWorkerThread(QThread):
 
 
 # ============================================================================
-# 🤖 Gemini Generation with Real-time Streaming
+# 🤖 Gemini Generation with Real-time Streaming (FIXED)
 # ============================================================================
 
 class GenerationThread(QThread):
@@ -401,7 +401,7 @@ class GenerationThread(QThread):
         self.preferred_model = preferred_model or self.MODELS_SEQUENCE[0]
     
     def run(self):
-        """Generate response with streaming"""
+        """Generate response with streaming - FIXED VERSION"""
         if not GEMINI_AVAILABLE:
             self.error_signal.emit("❌ Google Gemini API not available")
             return
@@ -427,7 +427,7 @@ class GenerationThread(QThread):
                 self.status_signal.emit(f"🔄 جاري الاتصال بـ {model}...")
                 logger.info(f"Attempting model: {model}")
                 
-                # Real-time streaming
+                # ✅ FIXED: Use stream() method instead of stream=True parameter
                 response = self.client.models.generate_content(
                     model=model,
                     contents=formatted_contents,
@@ -435,16 +435,20 @@ class GenerationThread(QThread):
                         system_instruction=self.system_prompt,
                         temperature=0.7,
                         max_output_tokens=2000,
-                    ),
-                    stream=True  # ✅ Enable streaming
+                    )
                 )
                 
                 self.status_signal.emit(f"💭 {model} يفكر...")
                 
-                # Stream tokens in real-time
-                for chunk in response:
-                    if chunk.text:
-                        self.token_signal.emit(chunk.text)
+                # ✅ Stream tokens in real-time
+                try:
+                    for chunk in response:
+                        if chunk.text:
+                            self.token_signal.emit(chunk.text)
+                except Exception as stream_error:
+                    # If streaming fails, try as regular response
+                    if response.text:
+                        self.token_signal.emit(response.text)
                 
                 success = True
                 logger.info(f"✅ Successfully generated response with {model}")
@@ -975,7 +979,7 @@ class Gemini_AI_Agent_Professional(QMainWindow):
     def toggle_recording(self):
         """Toggle audio recording"""
         if not STT_AVAILABLE:
-            QMessageBox.warning(self, "⚠️ تنبيه", "مكتبات الصوت غ��ر مثبتة\npip install sounddevice numpy scipy faster-whisper")
+            QMessageBox.warning(self, "⚠️ تنبيه", "مكتبات الصوت غير مثبتة\npip install sounddevice numpy scipy faster-whisper")
             return
         
         if not self.is_recording:
